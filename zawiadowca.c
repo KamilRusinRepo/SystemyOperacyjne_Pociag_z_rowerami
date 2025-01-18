@@ -9,6 +9,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <errno.h>
+#include <sys/resource.h>
 
 //nazwy semaforow
 #define PERON 0
@@ -16,12 +17,47 @@
 #define ROWER 2
 #define POCIAG 3
 #define SH 4
-
+#define BLOKADA_KIEROWNIK 5
 //zmienne globalne
-int semID, shmID;
+int semID, shmID, pozostaleProcesy;
 int pidK, pidP, wielkoscPamieci;
 int* sh;
 
+//funkcja obslugujaca operacje na sempaforach
+void sem_op(int sem_id, int sem_num, int op) {
+    struct sembuf sops = {sem_num, op, 0};
+    if (semop(sem_id, &sops, 1) == -1) {
+        perror("Błąd operacji na semaforze");
+        exit(1);
+    }
+}
+
+//funkcja sluzaca do pobierania maksymanlnej liczby procesow dla uzytkownika
+int maksymalnieProcesow() {
+struct rlimit rlim;
+
+    if (getrlimit(RLIMIT_NPROC, &rlim) == -1) {
+        perror("getrlimit");
+        return 1;
+    }
+
+    return rlim.rlim_cur;
+}
+
+//funkcja sluzy do sprawdzenia ile uzytkownik ma wlaczonych procesow
+int obecnaLiczbaProcesow() {
+    char command[256];
+    snprintf(command, sizeof(command), "ps -u %s --no-headers | wc -l", getenv("USER"));
+    FILE *fp = popen(command, "r");
+    if (fp == NULL) {
+        perror("Blad przy odczycie obecnej liczby procesow");
+        return -1;
+    }
+    int count;
+    fscanf(fp, "%d", &count);
+    fclose(fp);
+    return count;
+}
 //wysyla sygnal do procesu pociag by odjechal z peronu
 void sygnalDoPociagu(int sig) {
 	printf("WYSYLAM SYGNAL DO POCIAGU\n");
@@ -74,18 +110,31 @@ void czyszczenie() {
 }
 
 //funkcja sprawdzajaca poprawnosc wprowadzanych danych
-int wczytaj_dane() {
+int wczytaj_dane(int type) {
 	char buf[10];
 	int liczba;
 
 	while(1) {
 		if (fgets(buf, sizeof(buf), stdin) != NULL) {
 			if (sscanf(buf, "%d", &liczba) == 1) { // Konwersja tekstu na liczbe
-				if(liczba > 0) {
+				if(type == 0 && liczba > pozostaleProcesy) {
+					printf("Liczba przekracza mozliwa liczbe procesow do utworzenia\n");
+				}
+				else if(type == 1 && liczba > 3200) {
+					printf("Liczba przekracza maksymalna liczbe jaka moze przyjac semafor\n");
+				}
+				else if(liczba > 0) {
+					if(type == 0) {
+						pozostaleProcesy -= liczba;
+						printf("Pozostalo procesow: %d\n", pozostaleProcesy);
+					}
 					printf("Wczytano: %d\n", liczba);
 					return liczba;
 				}
-				printf("Liczba musi byc wieksza od 0\n");
+				else {
+					printf("Liczba musi byc wieksza od 0\n");
+				}
+				printf("Podaj liczbe: ");
 			}
 			else {
 				printf("Podaj liczbe jeszcze raz!\n");
@@ -97,21 +146,23 @@ int wczytaj_dane() {
 	}
 }
 
+
+
 int main() {
 	//inicjalizacja zmiennych
-	int pasazerowie, pociagi, pasazerowieWpociagu, roweryWpociagu, odjazd, przyjazd, peron;
+	int pasazerowie, pociagi, pasazerowieWpociagu, roweryWpociagu, odjazd, przyjazd, peron, maxProcesy, obecneProcesy;
         key_t kluczM, kluczS;
 
-	struct sigaction sigIntHandler, sigTermHandler, sigUsr2Handler;
+	struct sigaction sigIntHandler, sigUsr1Handler, sigUsr2Handler;
         sigIntHandler.sa_handler = koniecSygnal;
         sigemptyset(&sigIntHandler.sa_mask);
         sigIntHandler.sa_flags = 0;
         sigaction(SIGINT, &sigIntHandler, NULL);
 
-        sigTermHandler.sa_handler = sygnalDoPasazerowie;
-        sigemptyset(&sigTermHandler.sa_mask);
-        sigTermHandler.sa_flags = SA_RESTART;
-        sigaction(SIGUSR1, &sigTermHandler, NULL);
+        sigUsr1Handler.sa_handler = sygnalDoPasazerowie;
+        sigemptyset(&sigUsr1Handler.sa_mask);
+        sigUsr1Handler.sa_flags = SA_RESTART;
+        sigaction(SIGUSR1, &sigUsr1Handler, NULL);
 
         sigUsr2Handler.sa_handler = sygnalDoPociagu;
         sigemptyset(&sigUsr2Handler.sa_mask);
@@ -120,27 +171,33 @@ int main() {
 
 	printf("-----------ZAWIADOWCA---------------PID: %d\n", getpid());
 
+	//sprawdzanie limitow procesow
+	maxProcesy = maksymalnieProcesow();
+	obecneProcesy = obecnaLiczbaProcesow();
+	pozostaleProcesy = maxProcesy - obecneProcesy - 2;
+	printf("Pozostalo %d procesow do wykorzystania\n", pozostaleProcesy);
+
 	//wczytywanie danych
 	printf("Podaj liczbe pasazerow: ");
-	pasazerowie = wczytaj_dane();
+	pasazerowie = wczytaj_dane(0);
 
 	printf("Podaj liczbe pociagow: ");
-	pociagi = wczytaj_dane();
+	pociagi = wczytaj_dane(0);
 
 	printf("Podaj liczbe pasazerow z bagazem: ");
-	pasazerowieWpociagu = wczytaj_dane();
+	pasazerowieWpociagu = wczytaj_dane(1);
 
 	printf("Podaj liczbe pasazerow z rowerami: ");
-	roweryWpociagu = wczytaj_dane();
+	roweryWpociagu = wczytaj_dane(1);
 
 	printf("Podaj czas stania pociagu na peronie: ");
-	odjazd = wczytaj_dane();
+	odjazd = wczytaj_dane(2);
 
 	printf("Podaj czas trwania trasy pociagu: ");
-	przyjazd = wczytaj_dane();
+	przyjazd = wczytaj_dane(2);
 
         printf("Podaj wielkosc peronu: ");
-	peron = wczytaj_dane();
+	peron = wczytaj_dane(1);
 
 	//obliczanie wielkosci pamieci dzielonej
 	wielkoscPamieci = pasazerowieWpociagu + roweryWpociagu + 5;
@@ -173,7 +230,7 @@ int main() {
 	}
 
 	//tworzenie semaforow
-	semID = semget(kluczS, 5, IPC_CREAT | IPC_EXCL | 0666);
+	semID = semget(kluczS, 6, IPC_CREAT | IPC_EXCL | 0666);
 
 	//ustawianie poczatkowych wartosci w semaforach
 	semctl(semID, PERON, SETVAL, peron);
@@ -181,6 +238,7 @@ int main() {
 	semctl(semID, SH, SETVAL, 1);
 	semctl(semID, BAGAZ, SETVAL, 0);
 	semctl(semID, ROWER, SETVAL, 0);
+	semctl(semID, BLOKADA_KIEROWNIK, SETVAL, 0);
 
 	//konwertowanie zmiennych do przekazania procesom potomnym
     	char pasazerowie_str[20];
@@ -213,6 +271,8 @@ int main() {
 			}
 			exit(0);
 	}
+	//stworzenie procesu kierownik bedzie mozliwe tylko gdy wszyscy pasazerowie zostana stworzeni
+	sem_op(semID, BLOKADA_KIEROWNIK, -1);
 
     	//tworzenie procesu kierownik
 	pidK = fork();

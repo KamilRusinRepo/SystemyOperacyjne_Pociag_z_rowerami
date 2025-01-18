@@ -14,6 +14,7 @@
 #define BAGAZ 1
 #define ROWER 2
 #define SH 4
+#define BLOKADA_KIEROWNIK 5
 
 //zmienne globalne
 key_t kluczM, kluczS;
@@ -148,7 +149,7 @@ int main(int argc, char *argv[]) {
     }
 
     //Wczytywanie semaforow
-    semID = semget(kluczS, 5, IPC_CREAT | 0666);
+    semID = semget(kluczS, 6, IPC_CREAT | 0666);
     if (semID == -1) {
         perror("Błąd semget");
         exit(1);
@@ -166,6 +167,9 @@ int main(int argc, char *argv[]) {
 		    exit(0);
 	}
     }
+
+    //odblokowanie mozliwosc stworzenia pociagow
+    semctl(semID, BLOKADA_KIEROWNIK, SETVAL, 1);
 
     //czekanie na procesy potomne
     for(int i = 0; i < pasazerowie; i++) {
