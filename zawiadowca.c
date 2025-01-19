@@ -26,10 +26,17 @@ int* sh;
 //funkcja obslugujaca operacje na sempaforach
 void sem_op(int sem_id, int sem_num, int op) {
     struct sembuf sops = {sem_num, op, 0};
-    if (semop(sem_id, &sops, 1) == -1) {
-        perror("Błąd operacji na semaforze");
-        exit(1);
+    int wynik = semop(sem_id, &sops, 1);
+    if (wynik == -1) {
+	if(errno == EINTR) {
+		sem_op(sem_id, sem_num, op);
+	}
+	else {
+        	perror("Błąd operacji na semaforze");
+        	exit(1);
+	}
     }
+
 }
 
 //funkcja sluzaca do pobierania maksymanlnej liczby procesow dla uzytkownika

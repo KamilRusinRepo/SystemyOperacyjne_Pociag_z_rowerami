@@ -9,6 +9,7 @@
 #include <time.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <errno.h>
 
 //nazwy semaforow
 #define PERON 0
@@ -37,10 +38,17 @@ void obslugaSygnal1(int sig) {
 //funkcja obslugujaca operacje na sempaforach
 void sem_op(int sem_id, int sem_num, int op) {
     struct sembuf sops = {sem_num, op, 0};
-    if (semop(sem_id, &sops, 1) == -1) {
-        perror("Błąd operacji na semaforze");
-        exit(1);
+    int wynik = semop(sem_id, &sops, 1);
+    if (wynik == -1) {
+	if(errno == EINTR) {
+		sem_op(sem_id, sem_num, op);
+	}
+	else {
+        	perror("Błąd operacji na semaforze");
+        	exit(1);
+	}
     }
+
 }
 
 //obsluga procesu pociag
@@ -54,6 +62,8 @@ void pociag() {
 
     //informacja - pociag o numerze PID zostal stworzony
     printf("Pociag zostal stworzony. NR %d\n", getpid());
+
+    int i = 0;
 
     do {
 	przerwanie = 0;
@@ -105,7 +115,11 @@ void pociag() {
 	//pociag wroci na peron po czasie 'przyjazd';
 	sleep(przyjazd);
 
-    } while(sh[ZAPISP] > 0);
+	sem_op(semID, SH, -1);
+	i = sh[ZAPISP];
+	sem_op(semID, SH, 1);
+
+    } while(i > 0);
 
     printf("Pociag %d konczy kursowac - brak pasazerow na peronie\n", getpid());
     exit(0);
