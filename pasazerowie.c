@@ -9,13 +9,13 @@
 #include <time.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <string.h>
 
 //nazwy semaforow
 #define PERON 0
 #define BAGAZ 1
 #define ROWER 2
 #define SH 4
-#define BLOKADA_KIEROWNIK 5
 
 //zmienne globalne
 key_t kluczM, kluczS;
@@ -37,7 +37,7 @@ void sem_op(int sem_id, int sem_num, int op) {
 		sem_op(sem_id, sem_num, op);
 	}
 	else {
-        	perror("Błąd operacji na semaforze");
+        	perror("Blad operacji na semaforze");
         	exit(1);
 	}
     }
@@ -68,8 +68,14 @@ void pasazer() {
     //pasazer wchodzi na peron jesli nie jest zablokowany
     sem_op(semID, PERON, -1);
 
+    int blokada = 0;
+
+    sem_op(semID, SH, -1);
+    blokada = sh[BLOKADA];
+    sem_op(semID, SH, 1);
+
     //jesli peron jest zablokowany proces sie konczy
-    if(sh[BLOKADA] == 1) {
+    if(blokada == 1) {
 	sem_op(semID, PERON, 1);
 	exit(0);
     }
@@ -86,9 +92,10 @@ void pasazer() {
 	printf("Pasazer %d z ROWEREM w kolejce\n", getpid());
 
 	sem_op(semID, SH, -1);
-        sh[ZAPISR] = getpid();
+        printf("ZAPISR = %d\n", ZAPISR);
+	sh[ZAPISR] = getpid();
        	printf("pasazer z ROWEREM wsiadl do pociagu. NR %d\n", getpid());
-	printf("wartosc tablicy sh %d\n", sh[ZAPISR]);
+	printf("wartosc tablicy %d sh %d\n", ZAPISR, sh[ZAPISR]);
         sh[wielkoscPamieci - 4]++;
         sh[ZAPISP]--;
         sem_op(semID, SH, 1);
@@ -100,7 +107,7 @@ void pasazer() {
 	sem_op(semID, SH, -1);
 	sh[ZAPISB] = getpid();
         printf("pasazer z BAGAZEM wsiadl do pociagu. NR %d\n", getpid());
-       	printf("wartosc tablicy sh %d\n", sh[ZAPISB]);
+       	printf("wartosc tablicy %d sh %d\n", ZAPISB, sh[ZAPISB]);
 	sh[wielkoscPamieci - 5]++;
 	sh[ZAPISP]--;
 	sem_op(semID, SH, 1);
@@ -145,7 +152,7 @@ int main(int argc, char *argv[]) {
     }
     sh = (int*)shmat(shmID, NULL, 0);
     if (sh == (void *)-1) {
-        perror("Błąd dołączania pamięci współdzielonej");
+        perror("Blad dolaczania pamieci wspoldzielonej");
         exit(1);
     }
 
@@ -156,9 +163,9 @@ int main(int argc, char *argv[]) {
     }
 
     //Wczytywanie semaforow
-    semID = semget(kluczS, 6, IPC_CREAT | 0666);
+    semID = semget(kluczS, 5, IPC_CREAT | 0666);
     if (semID == -1) {
-        perror("Błąd semget");
+        perror("Blad semget");
         exit(1);
     }
 
@@ -167,16 +174,16 @@ int main(int argc, char *argv[]) {
 	int pidP = fork();
         switch(pidP) {
 	        case -1:
-		    printf("Blad fork() (pasazerowie)");
+		    	perror("Blad fork() (pasazerowie)");
+			if(errno == EAGAIN) {
+				printf("Error code: %d (%s)\n", errno, strerror(errno));
+			}
 			exit(1);
 		case 0:
-		    pasazer();
-		    exit(0);
+		    	pasazer();
+		    	exit(0);
 	}
     }
-
-    //odblokowanie mozliwosc stworzenia pociagow
-    semctl(semID, BLOKADA_KIEROWNIK, SETVAL, 1);
 
     //czekanie na procesy potomne
     for(int i = 0; i < pasazerowie; i++) {

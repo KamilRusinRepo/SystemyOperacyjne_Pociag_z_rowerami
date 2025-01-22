@@ -44,7 +44,7 @@ void sem_op(int sem_id, int sem_num, int op) {
 		sem_op(sem_id, sem_num, op);
 	}
 	else {
-        	perror("Błąd operacji na semaforze");
+        	perror("Blad operacji na semaforze");
         	exit(1);
 	}
     }
@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
     }
     sh = (int*)shmat(shmID, NULL, 0);
     if (sh == (void *)-1) {
-        perror("Błąd dołączania pamięci współdzielonej");
+        perror("Blad dolaczania pamieci wspoldzielonej");
         exit(1);
     }
 
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
     //Wczytywanie semaforow
     semID = semget(kluczS, 5, IPC_CREAT | 0666);
     if (semID == -1) {
-        perror("Błąd semget");
+        perror("Blad semget");
         exit(1);
     }
 

@@ -17,7 +17,7 @@
 #define ROWER 2
 #define POCIAG 3
 #define SH 4
-#define BLOKADA_KIEROWNIK 5
+
 //zmienne globalne
 int semID, shmID, pozostaleProcesy;
 int pidK, pidP, wielkoscPamieci;
@@ -32,7 +32,7 @@ void sem_op(int sem_id, int sem_num, int op) {
 		sem_op(sem_id, sem_num, op);
 	}
 	else {
-        	perror("Błąd operacji na semaforze");
+        	perror("Blad operacji na semaforze");
         	exit(1);
 	}
     }
@@ -75,7 +75,7 @@ void sygnalDoPociagu(int sig) {
             perror("Blad przy wysylaniu SIGUSR2");
         }
         else {
-            printf("Sygnał SIGUSR2 wysłany do procesu %d\n", sh[wielkoscPamieci - 1]);
+            printf("Sygnal SIGUSR2 wyslany do procesu %d\n", sh[wielkoscPamieci - 1]);
         }
 }
 
@@ -86,7 +86,7 @@ void sygnalDoPasazerowie(int sig) {
             perror("Blad przy wysylaniu SIGUSR1");
         }
         else {
-            printf("Sygnał SIGUSR1 wysłany do procesu %d\n", pidP);
+            printf("Sygnal SIGUSR1 wyslany do procesu %d\n", pidP);
         }
 }
 
@@ -111,7 +111,7 @@ void czyszczenie() {
 	semctl(semID, POCIAG, IPC_RMID, NULL);
 	semctl(semID, SH, IPC_RMID, NULL);
 	if (shmctl(shmID, IPC_RMID, NULL) == -1) {
-        	perror("Błąd przy usuwaniu pamięci dzielonej");
+        	perror("Blad przy usuwaniu pamieci dzielonej");
         	exit(1);
     	}
 }
@@ -127,10 +127,10 @@ int wczytaj_dane(int type) {
 				if(type == 0 && liczba > pozostaleProcesy) {
 					printf("Liczba przekracza mozliwa liczbe procesow do utworzenia\n");
 				}
-				else if(type == 1 && liczba > 3200) {
-					printf("Liczba przekracza maksymalna liczbe jaka moze przyjac semafor\n");
-				}
-				else if(liczba > 0) {
+				//else if(type == 1 && liczba > 3200) {
+				//	printf("Liczba przekracza maksymalna liczbe jaka moze przyjac semafor\n");
+				//}
+				else if(liczba >= 0) {
 					if(type == 0) {
 						pozostaleProcesy -= liczba;
 						printf("Pozostalo procesow: %d\n", pozostaleProcesy);
@@ -148,7 +148,7 @@ int wczytaj_dane(int type) {
 			}
 		}
 		else {
-        		printf("Błąd odczytu!\n");
+        		printf("Blad odczytu!\n");
     		}
 	}
 }
@@ -191,10 +191,10 @@ int main() {
 	printf("Podaj liczbe pociagow: ");
 	pociagi = wczytaj_dane(0);
 
-	printf("Podaj liczbe pasazerow z bagazem: ");
+	printf("Podaj liczbe miejsc w pociagu dla pasazerow bez roweru: ");
 	pasazerowieWpociagu = wczytaj_dane(1);
 
-	printf("Podaj liczbe pasazerow z rowerami: ");
+	printf("Podaj liczbe miejsc w pociagu dla  pasazerow z rowerami: ");
 	roweryWpociagu = wczytaj_dane(1);
 
 	printf("Podaj czas stania pociagu na peronie: ");
@@ -237,7 +237,7 @@ int main() {
 	}
 
 	//tworzenie semaforow
-	semID = semget(kluczS, 6, IPC_CREAT | IPC_EXCL | 0666);
+	semID = semget(kluczS, 5, IPC_CREAT | IPC_EXCL | 0666);
 
 	//ustawianie poczatkowych wartosci w semaforach
 	semctl(semID, PERON, SETVAL, peron);
@@ -245,7 +245,6 @@ int main() {
 	semctl(semID, SH, SETVAL, 1);
 	semctl(semID, BAGAZ, SETVAL, 0);
 	semctl(semID, ROWER, SETVAL, 0);
-	semctl(semID, BLOKADA_KIEROWNIK, SETVAL, 0);
 
 	//konwertowanie zmiennych do przekazania procesom potomnym
     	char pasazerowie_str[20];
@@ -278,8 +277,6 @@ int main() {
 			}
 			exit(0);
 	}
-	//stworzenie procesu kierownik bedzie mozliwe tylko gdy wszyscy pasazerowie zostana stworzeni
-	sem_op(semID, BLOKADA_KIEROWNIK, -1);
 
     	//tworzenie procesu kierownik
 	pidK = fork();
@@ -297,7 +294,7 @@ int main() {
 
     	//proces czeka na zakonczenie procesow potomnych
 	waitpid(pidP, NULL, 0);
-	printf("ZAWAIDOWCA ZAKONCZYL CZEKANIE NA PROCES PASAZEROWIE\n");
+	printf("ZAWIADOWCA ZAKONCZYL CZEKANIE NA PROCES PASAZEROWIE\n");
 	waitpid(pidK, NULL, 0);
 	printf("ZAWIADOWCA ZAKONCZYL CZEKANIE NA PROCES KIEROWNIK\n");
 
