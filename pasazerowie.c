@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
     }
 
     //Wczytywanie semaforow
-    semID = semget(kluczS, 5, IPC_CREAT | 0666);
+    semID = semget(kluczS, 6, IPC_CREAT | 0666);
     if (semID == -1) {
         perror("Blad semget");
         exit(1);

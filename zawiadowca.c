@@ -93,11 +93,7 @@ void sygnalDoPasazerowie(int sig) {
 //funkcja usuwajaca pamiec dzielona i semafory po obsluzeniu sygnalu sigint
 void koniecSygnal(int sig) {
         shmctl(shmID, IPC_RMID, NULL);
-	semctl(semID, PERON, IPC_RMID, NULL);
-    	semctl(semID, BAGAZ, IPC_RMID, NULL);
-	semctl(semID, ROWER, IPC_RMID, NULL);
-	semctl(semID, POCIAG, IPC_RMID, NULL);
-	semctl(semID, SH, IPC_RMID, NULL);
+	semctl(semID, 0, IPC_RMID, NULL);
 	printf("Zakonczono przez sygnal %d\n", sig);
 	exit(1);
 }
@@ -105,11 +101,8 @@ void koniecSygnal(int sig) {
 //funkcja usuwa pamiec dzielona i semafory gdy program zakonczy sie bez bledow
 void czyszczenie() {
 	printf("CZYSZCZENIE\n");
-	semctl(semID, PERON, IPC_RMID, NULL);
-        semctl(semID, BAGAZ, IPC_RMID, NULL);
-	semctl(semID, ROWER, IPC_RMID, NULL);
-	semctl(semID, POCIAG, IPC_RMID, NULL);
-	semctl(semID, SH, IPC_RMID, NULL);
+	semctl(semID, 0, IPC_RMID, NULL);
+	semctl(semID, P_PID, IPC_RMID, NULL);
 	if (shmctl(shmID, IPC_RMID, NULL) == -1) {
         	perror("Blad przy usuwaniu pamieci dzielonej");
         	exit(1);
@@ -237,7 +230,7 @@ int main() {
 	}
 
 	//tworzenie semaforow
-	semID = semget(kluczS, 5, IPC_CREAT | IPC_EXCL | 0666);
+	semID = semget(kluczS, 6, IPC_CREAT | IPC_EXCL | 0666);
 
 	//ustawianie poczatkowych wartosci w semaforach
 	semctl(semID, PERON, SETVAL, peron);
