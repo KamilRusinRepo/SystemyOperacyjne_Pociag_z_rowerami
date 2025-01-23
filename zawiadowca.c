@@ -230,7 +230,7 @@ int main() {
 	}
 
 	//tworzenie semaforow
-	semID = semget(kluczS, 6, IPC_CREAT | IPC_EXCL | 0666);
+	semID = semget(kluczS, 5, IPC_CREAT | IPC_EXCL | 0666);
 
 	//ustawianie poczatkowych wartosci w semaforach
 	semctl(semID, PERON, SETVAL, peron);
