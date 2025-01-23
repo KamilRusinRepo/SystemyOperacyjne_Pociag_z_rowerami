@@ -120,10 +120,7 @@ int wczytaj_dane(int type) {
 				if(type == 0 && liczba > pozostaleProcesy) {
 					printf("Liczba przekracza mozliwa liczbe procesow do utworzenia\n");
 				}
-				//else if(type == 1 && liczba > 3200) {
-				//	printf("Liczba przekracza maksymalna liczbe jaka moze przyjac semafor\n");
-				//}
-				else if(liczba >= 0) {
+				else if(liczba > 0) {
 					if(type == 0) {
 						pozostaleProcesy -= liczba;
 						printf("Pozostalo procesow: %d\n", pozostaleProcesy);
