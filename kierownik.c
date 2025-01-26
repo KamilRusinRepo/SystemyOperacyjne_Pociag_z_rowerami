@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
 	printf("Blad ftok");
 	exit(1);
     }
-    shmID = shmID = shmget(kluczM, wielkoscPamieci * sizeof(int), IPC_CREAT | 0666);
+    shmID = shmget(kluczM, wielkoscPamieci * sizeof(int), IPC_CREAT | 0666);
     if(shmID == -1) {
 	perror("Blad pamieci dzielonej");
 	exit(1);
