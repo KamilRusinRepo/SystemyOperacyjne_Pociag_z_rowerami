@@ -45,7 +45,7 @@ void sem_op(int sem_id, int sem_num, int op) {
 
 //funkcja obslugujaca sygnal wysylany z procesu ZAWIADOWCA
 void obslugaSygnal2(int sig) {
-	printf("PERON ZAMKNIETY\n");
+	printf("\033[1;31mPERON ZAMKNIETY\033[0m\n");
 	sem_op(semID, SH, -1);
 	sh[BLOKADA] = 1;
 	sem_op(semID, SH, 1);
@@ -59,10 +59,10 @@ void pasazer() {
 
     //informacja - pasazer o numerze PID zostal stworzony
     if(rower) {
-        printf("pasazer z rowerem zostal stworzony. NR %d\n", getpid());
+        printf("\033[32mPasazer z rowerem zostal stworzony. NR %d\033[0m\n", getpid());
     }
     else {
-        printf("pasazer z bagazem zostal stworzony. NR %d\n", getpid());
+        printf("\033[33mPasazer z bagazem zostal stworzony. NR %d\033[0m\n", getpid());
     }
 
     //pasazer wchodzi na peron jesli nie jest zablokowany
@@ -89,25 +89,24 @@ void pasazer() {
     //pasazer ustawia sie do odpowiedniej kolejki w zalaznosci czy ma bagaz czy rower
     if(rower) {
         sem_op(semID, ROWER, -1);
-	printf("Pasazer %d z ROWEREM w kolejce\n", getpid());
+
+	printf("\033[32mPasazer %d z ROWEREM w kolejce\033[0m\n", getpid());
 
 	sem_op(semID, SH, -1);
-        printf("ZAPISR = %d\n", ZAPISR);
 	sh[ZAPISR] = getpid();
-       	printf("pasazer z ROWEREM wsiadl do pociagu. NR %d\n", getpid());
-	printf("wartosc tablicy %d sh %d\n", ZAPISR, sh[ZAPISR]);
+       	printf("\033[32mPasazer z ROWEREM wsiadl do pociagu. NR %d\033[0m\n", getpid());
         sh[wielkoscPamieci - 4]++;
         sh[ZAPISP]--;
         sem_op(semID, SH, 1);
      }
      else {
         sem_op(semID, BAGAZ, -1);
-        printf("Pasazer %d z BAGAZEM w kolejce\n", getpid());
+
+        printf("\033[33mPasazer %d z BAGAZEM w kolejce\033[0m\n", getpid());
 
 	sem_op(semID, SH, -1);
 	sh[ZAPISB] = getpid();
-        printf("pasazer z BAGAZEM wsiadl do pociagu. NR %d\n", getpid());
-       	printf("wartosc tablicy %d sh %d\n", ZAPISB, sh[ZAPISB]);
+        printf("\033[33mPasazer z BAGAZEM wsiadl do pociagu. NR %d\033[0m\n", getpid());
 	sh[wielkoscPamieci - 5]++;
 	sh[ZAPISP]--;
 	sem_op(semID, SH, 1);
@@ -128,7 +127,7 @@ int main(int argc, char *argv[]) {
     sigTermHandler.sa_flags = 0;
     sigaction(SIGUSR1, &sigTermHandler, NULL);
 
-    printf("----------PASAZEROWIE--------PID: %d\n", getpid());
+    printf("\033[1;31m----------PASAZEROWIE--------PID: %d\033[0m\n", getpid());
 
     //Sprawdzanie liczby wymaganych argumentow
     if (argc != 3) {
@@ -189,6 +188,6 @@ int main(int argc, char *argv[]) {
     for(int i = 0; i < pasazerowie; i++) {
         wait(NULL);
     }
-    printf("------PASARZEROWIE KONIEC-------\n");
+    printf("\033[1;31m------PASARZEROWIE KONIEC-------\033[0m\n");
     exit(0);
 }

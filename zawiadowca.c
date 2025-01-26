@@ -166,7 +166,7 @@ int main() {
         sigUsr2Handler.sa_flags = SA_RESTART;
         sigaction(SIGUSR2, &sigUsr2Handler, NULL);
 
-	printf("-----------ZAWIADOWCA---------------PID: %d\n", getpid());
+	printf("\033[1;31m-----------ZAWIADOWCA---------------PID: %d\033[0m\n", getpid());
 
 	//sprawdzanie limitow procesow
 	maxProcesy = maksymalnieProcesow();
@@ -284,11 +284,11 @@ int main() {
 
     	//proces czeka na zakonczenie procesow potomnych
 	waitpid(pidP, NULL, 0);
-	printf("ZAWIADOWCA ZAKONCZYL CZEKANIE NA PROCES PASAZEROWIE\n");
+	printf("\033[1;31mZAWIADOWCA ZAKONCZYL CZEKANIE NA PROCES PASAZEROWIE\033[0m\n");
 	waitpid(pidK, NULL, 0);
-	printf("ZAWIADOWCA ZAKONCZYL CZEKANIE NA PROCES KIEROWNIK\n");
+	printf("\033[1;31mZAWIADOWCA ZAKONCZYL CZEKANIE NA PROCES KIEROWNIK\033[0m\n");
 
-	printf("------KONIEC ZAWIADOWCA----\n");
+	printf("\033[1;31m------KONIEC ZAWIADOWCA----\033[0m\n");
 
     	//wywolanie funkcji zwalniajacej pamiec i semafory
     	czyszczenie();

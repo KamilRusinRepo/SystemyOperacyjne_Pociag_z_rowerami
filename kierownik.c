@@ -31,7 +31,7 @@ int semID, shmID, wielkoscPamieci, pociagi, odjazd, przyjazd, pasazerowieWpociag
 
 //funkcja obslugujaca sygnal wysylany z procesu ZAWIADOWCA
 void obslugaSygnal1(int sig) {
-	printf("Pociag obsluzyl sygnal\n");
+	printf("\033[1;31mPociag opuszcza peron przed czasem\033[0m\n");
 	przerwanie = 1;
 }
 
@@ -61,7 +61,7 @@ void pociag() {
     sigaction(SIGUSR2, &sigUsr2Handler, NULL);
 
     //informacja - pociag o numerze PID zostal stworzony
-    printf("Pociag zostal stworzony. NR %d\n", getpid());
+    printf("\033[35mPociag zostal stworzony. NR %d\033[0m\n", getpid());
 
     int i = 0;
 
@@ -69,7 +69,7 @@ void pociag() {
 	przerwanie = 0;
         //pociag wjezdza na peron
         sem_op(semID, POCIAG, -1);
-        printf("Pociag %d dojechal na peron\n", getpid());
+        printf("\033[1;31mPociag %d dojechal na peron\033[0m\n", getpid());
 
 
 	//pociag wpisuje swoje ID do pamieci dzielonej by mozna bylo do niego wyslac sygnal SIGUSR2
@@ -81,7 +81,7 @@ void pociag() {
         //pociag daje mozliwosc wejscia pasazerom
         semctl(semID, BAGAZ, SETVAL, pasazerowieWpociagu);
         semctl(semID, ROWER, SETVAL, roweryWpociagu);
-	printf("Pociag %d czeka na pasazerow\n", getpid());
+	printf("\033[34mPociag %d czeka na pasazerow\033[0m\n", getpid());
 
         //start odliczania czasu postoju na peronie
         for(int i = 0; i < odjazd; i++) {
@@ -92,10 +92,10 @@ void pociag() {
 	}
 
 	//zamkniecie kolejek - pasazer nie moze wejsc do pociagu
-	printf("Pociag %d zamyka wejscia\n", getpid());
+	printf("\033[34mPociag %d zamyka wejscia\033[0m\n", getpid());
 	semctl(semID, BAGAZ, SETVAL, 0);
         semctl(semID, ROWER, SETVAL, 0);
-	printf("Pociag %d zamknal wejscia\n", getpid());
+	printf("\033[34mPociag %d zamknal wejscia\033[0m\n", getpid());
 
        	//zerowanie pamieci dzielonej
 	sem_op(semID, SH, -1);
@@ -108,7 +108,7 @@ void pociag() {
 	sh[wielkoscPamieci - 1] = 0;
 	sem_op(semID, SH, 1);
 
-	printf("Pociag %d opuszcza peron\n", getpid());
+	printf("\033[34mPociag %d opuszcza peron\033[0m\n", getpid());
 	printf("Pozostalo na peronie: %d\n", sh[ZAPISP]);
 	sem_op(semID, POCIAG, 1);
 
@@ -121,12 +121,12 @@ void pociag() {
 
     } while(i > 0);
 
-    printf("Pociag %d konczy kursowac - brak pasazerow na peronie\n", getpid());
+    printf("\033[31mPociag %d konczy kursowac - brak pasazerow na peronie\033[31m\n", getpid());
     exit(0);
 }
 
 int main(int argc, char *argv[]) {
-    printf("-------------KIEROWNIK-----------------\n");
+    printf("\033[1;31m-------------KIEROWNIK-----------------\033[0m\n");
 
     //Sprawdzanie liczby wymaganych argumentow
     if (argc != 7) {
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
         wait(NULL);
     }
 
-    printf("------KONIEC KIEROWNIK---------\n");
+    printf("\033[1;31m------KONIEC KIEROWNIK---------\033[0m\n");
 
     exit(0);
 }
