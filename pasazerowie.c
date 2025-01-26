@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
 	exit(1);
     }
     sh = (int*)shmat(shmID, NULL, 0);
-    if (sh == (void *)-1) {
+    if (sh == (int *)-1) {
         perror("Blad dolaczania pamieci wspoldzielonej");
         exit(1);
     }

@@ -79,13 +79,20 @@ void pociag() {
 	sem_op(semID, SH, 1);
 
         //pociag daje mozliwosc wejscia pasazerom
-        semctl(semID, BAGAZ, SETVAL, pasazerowieWpociagu);
-        semctl(semID, ROWER, SETVAL, roweryWpociagu);
+        if(semctl(semID, BAGAZ, SETVAL, pasazerowieWpociagu) == -1) {
+		perror("Blad przy ustawianiu wartosci semafora");
+		exit(1);
+	}
+
+	if(semctl(semID, ROWER, SETVAL, roweryWpociagu) == -1) {
+		perror("Blad przy ustawianiu wartosci semafora");
+		exit(1);
+	}
 	printf("\033[34mPociag %d czeka na pasazerow\033[0m\n", getpid());
 
         //start odliczania czasu postoju na peronie
         for(int i = 0; i < odjazd; i++) {
-		sleep(1);
+        	sleep(1);
 		if(przerwanie) {
 			break;
 		}
@@ -93,8 +100,14 @@ void pociag() {
 
 	//zamkniecie kolejek - pasazer nie moze wejsc do pociagu
 	printf("\033[34mPociag %d zamyka wejscia\033[0m\n", getpid());
-	semctl(semID, BAGAZ, SETVAL, 0);
-        semctl(semID, ROWER, SETVAL, 0);
+	if(semctl(semID, BAGAZ, SETVAL, 0) == -1) {
+		perror("Blad przy ustawianiu wartosci semafora");
+		exit(1);
+	}
+        if(semctl(semID, ROWER, SETVAL, 0) == -1) {
+		perror("Blad przy ustawianiu wartosci semafora");
+		exit(1);
+	}
 	printf("\033[34mPociag %d zamknal wejscia\033[0m\n", getpid());
 
        	//zerowanie pamieci dzielonej
@@ -153,7 +166,7 @@ int main(int argc, char *argv[]) {
 	exit(1);
     }
     sh = (int*)shmat(shmID, NULL, 0);
-    if (sh == (void *)-1) {
+    if (sh == (int *)-1) {
         perror("Blad dolaczania pamieci wspoldzielonej");
         exit(1);
     }

@@ -73,6 +73,7 @@ void sygnalDoPociagu(int sig) {
 	}
 	else if (kill(sh[wielkoscPamieci - 1], SIGUSR2) == -1) {
             perror("Blad przy wysylaniu SIGUSR2");
+	    exit(1);
         }
         else {
             printf("Sygnal SIGUSR2 wyslany do procesu %d\n", sh[wielkoscPamieci - 1]);
@@ -84,6 +85,7 @@ void sygnalDoPasazerowie(int sig) {
 	printf("WYSYLANIE SYGNALU DO PASAZEROWIE\n");
 	if (kill(pidP, SIGUSR1) == -1) {
             perror("Blad przy wysylaniu SIGUSR1");
+	    exit(1);
         }
         else {
             printf("Sygnal SIGUSR1 wyslany do procesu %d\n", pidP);
@@ -92,8 +94,14 @@ void sygnalDoPasazerowie(int sig) {
 
 //funkcja usuwajaca pamiec dzielona i semafory po obsluzeniu sygnalu sigint
 void koniecSygnal(int sig) {
-        shmctl(shmID, IPC_RMID, NULL);
-	semctl(semID, 0, IPC_RMID, NULL);
+        if(shmctl(shmID, IPC_RMID, NULL) == -1) {
+		perror("Blad przy usuwaniu pamieci dzielonej");
+        	exit(1);
+    	}
+	if(semctl(semID, 0, IPC_RMID, NULL) == -1) {
+		perror("Blad przy usuwaniu semaforow");
+        	exit(1);
+    	}
 	printf("Zakonczono przez sygnal %d\n", sig);
 	exit(1);
 }
@@ -101,8 +109,10 @@ void koniecSygnal(int sig) {
 //funkcja usuwa pamiec dzielona i semafory gdy program zakonczy sie bez bledow
 void czyszczenie() {
 	printf("CZYSZCZENIE\n");
-	semctl(semID, 0, IPC_RMID, NULL);
-	semctl(semID, P_PID, IPC_RMID, NULL);
+	if(semctl(semID, 0, IPC_RMID, NULL) == -1) {
+		perror("Blad przy usuwaniu semaforow");
+        	exit(1);
+    	}
 	if (shmctl(shmID, IPC_RMID, NULL) == -1) {
         	perror("Blad przy usuwaniu pamieci dzielonej");
         	exit(1);
@@ -214,6 +224,10 @@ int main() {
 
 	//dodawanie znacznikow do pamieci dzielonej
 	sh = (int*)shmat(shmID, NULL, 0);
+	if(sh == (int*) -1) {
+		perror("Blad przy dolaczaniu pamieci dzielonej");
+		exit(1);
+	}
 	sh[wielkoscPamieci - 5] = 0;	//poczatkowy indeks zapisu dla pasazera z bagazem
 	sh[wielkoscPamieci - 4] = pasazerowieWpociagu;	//poczatkowy indeks zapisu dla pasazera z rowerem
 	sh[wielkoscPamieci - 3] = 0;	//poczatkowa ilosc pasazerow do rozwiezienia
@@ -228,13 +242,32 @@ int main() {
 
 	//tworzenie semaforow
 	semID = semget(kluczS, 5, IPC_CREAT | IPC_EXCL | 0666);
+	if(semID == -1) {
+		perror("Blad przy tworzeniu semaforow");
+        	exit(1);
+    	}
 
 	//ustawianie poczatkowych wartosci w semaforach
-	semctl(semID, PERON, SETVAL, peron);
-	semctl(semID, POCIAG, SETVAL, 1);
-	semctl(semID, SH, SETVAL, 1);
-	semctl(semID, BAGAZ, SETVAL, 0);
-	semctl(semID, ROWER, SETVAL, 0);
+	if(semctl(semID, PERON, SETVAL, peron) == -1) {
+		perror("Blad przy ustawianiu wartosci semafora");
+        	exit(1);
+    	}
+	if(semctl(semID, POCIAG, SETVAL, 1) == -1) {
+		perror("Blad przy ustawianiu wartosci semafora");
+        	exit(1);
+    	}
+	if(semctl(semID, SH, SETVAL, 1) == -1) {
+		perror("Blad przy ustawianiu wartosci semafora");
+        	exit(1);
+    	}
+	if(semctl(semID, BAGAZ, SETVAL, 0) == -1) {
+		perror("Blad przy ustawianiu wartosci semafora");
+        	exit(1);
+    	}
+	if(semctl(semID, ROWER, SETVAL, 0) == -1) {
+		perror("Blad przy ustawianiu wartosci semafora");
+        	exit(1);
+    	}
 
 	//konwertowanie zmiennych do przekazania procesom potomnym
     	char pasazerowie_str[20];
